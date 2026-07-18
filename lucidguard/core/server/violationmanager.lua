@@ -260,6 +260,25 @@ function ViolationManager.TakeAction(playerId, detectionType, action, context)
     local identifiers = GetPlayerIdentifiers(playerId)
     
     context = context or {}
+
+    -- Safe Mode MUST block kicks/bans (this path previously bypassed ExecutePunishment)
+    local safeMode = Config.PlayerSafety
+        and Config.PlayerSafety.SafeMode
+        and Config.PlayerSafety.SafeMode.Enabled
+        and Config.PlayerSafety.SafeMode.LogOnly
+
+    if safeMode and (action == 'KICK' or action == 'BAN') then
+        if Log then
+            Log('INFO', detectionType, string.format(
+                '[SAFE MODE] Blocked %s on %s (violations %d/%d) — log only',
+                action,
+                playerName,
+                context.count or 0,
+                context.threshold or 0
+            ), playerId, context.details)
+        end
+        action = 'FLAG'
+    end
     
     -- Log action
     if Log then
@@ -284,10 +303,13 @@ function ViolationManager.TakeAction(playerId, detectionType, action, context)
         ))
         
     elseif action == 'BAN' then
-        -- Try to use punishment system if available
-        if TriggerEvent then
-            TriggerEvent('lucidguard:punish', playerId, detectionType, 
-                context.details and context.details.reason or 'Threshold exceeded')
+        -- Prefer BanStore + SafeMode-aware punishment path
+        if ExecutePunishment then
+            ExecutePunishment(playerId, context.severity or 'CRITICAL', detectionType,
+                context.details and (context.details.reason or context.details) or 'Threshold exceeded')
+        elseif BanStore and BanStore.AddBan then
+            BanStore.AddBan(playerId, 'LucidGuard: ' .. tostring(detectionType), detectionType)
+            DropPlayer(playerId, string.format('[LucidGuard] Banned: %s', detectionType))
         else
             DropPlayer(playerId, string.format(
                 '[LucidGuard] Banned: %s',
@@ -300,9 +322,9 @@ function ViolationManager.TakeAction(playerId, detectionType, action, context)
         if Log then
             Log('ALERT', detectionType, 'Player flagged for review', playerId, context)
         end
-        
-        -- Shadowban if enabled
-        if Config.Modules.Shadowban and TriggerEvent then
+
+        -- Do not shadowban while Safe Mode is on
+        if not safeMode and Config.Modules and Config.Modules.Shadowban and TriggerEvent then
             TriggerEvent('lucidguard:shadowban', playerId, detectionType)
         end
         

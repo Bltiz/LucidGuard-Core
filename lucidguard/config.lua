@@ -60,6 +60,46 @@ Config.AdminGroups = {
     'owner'
 }
 
+-- ============================================================================
+-- ADMIN PANEL (NUI) — open with F7 in-game
+-- ============================================================================
+
+Config.Panel = {
+    Enabled = true,
+    OpenKeyHint = 'F7',
+    -- Optional Discord webhook for staff screenshot uploads (leave empty to disable upload)
+    ScreenshotWebhook = GetConvar('lucidguard_screenshot_webhook', '')
+}
+
+-- Browser tab panel: http://127.0.0.1:30120/lucidguard/
+Config.WebPanel = {
+    Enabled = true,
+    -- Prefer convar: set lucidguard_web_password "yourpass"
+    Password = GetConvar('lucidguard_web_password', '') ~= '' and GetConvar('lucidguard_web_password', '') or 'changeme',
+    -- Owner-only theme / snowfall color (events & holidays)
+    -- set lucidguard_theme_pin "yourpin"
+    ThemePin = GetConvar('lucidguard_theme_pin', '') ~= '' and GetConvar('lucidguard_theme_pin', '') or 'lucidowner',
+    -- Default accent (override via lucidguard_theme_pin / panel CSS)
+    Theme = {
+        Accent = GetConvar('lucidguard_theme_accent', '#f97316'),
+        Snow = GetConvar('lucidguard_theme_snow', 'orange') -- orange | purple | teal | rose | gold
+    },
+    -- On server start: print panel URL + post clickable Discord embed
+    AnnounceOnStart = true,
+    AnnounceDelayMs = 8000
+}
+
+-- Staff evidence cases (auto-open on HIGH/CRITICAL)
+Config.Evidence = {
+    Enabled = true,
+    AutoScreenshot = true, -- requires screenshot-basic + webhook convar
+    AutoCaseSeverities = { HIGH = true, CRITICAL = true },
+    -- Discord admin/staff channel when a case opens (set later)
+    -- set lucidguard_case_webhook "https://discord.com/api/webhooks/..."
+    CaseWebhook = GetConvar('lucidguard_case_webhook', ''),
+    CaseDiscordEnabled = true
+}
+
 -- Full admin immunity - admins bypass ALL detection systems including:
 -- Economy monitoring, rate limits, chat analysis, item checks, etc.
 -- SECURITY FIX: Disabled to enable admin action auditing via AdminMonitoring module
@@ -81,7 +121,54 @@ Config.Modules = {
     BurstFilter = true,
     VectorValidation = true,
     JunkEvents = true,
-    ResourceScanner = true
+    ResourceScanner = true,
+    EventAbuse = true,
+    NameGuard = true,
+    DevTools = true,
+    DeadMan = true,
+    WeaponStrip = true
+}
+
+Config.DeadMan = {
+    PingMs = 8000,
+    CheckMs = 10000,
+    TimeoutSec = 45,
+    Strikes = 2
+}
+
+Config.WeaponStrip = {
+    SampleMs = 6000,
+    Blacklist = {
+        'WEAPON_RAILGUN', 'WEAPON_MINIGUN', 'WEAPON_RPG', 'WEAPON_HOMINGLAUNCHER',
+        'WEAPON_COMPACTLAUNCHER', 'WEAPON_GRENADELAUNCHER', 'WEAPON_EMPLAUNCHER',
+        'WEAPON_RAYPISTOL', 'WEAPON_RAYCARBINE', 'WEAPON_RAYMINIGUN'
+    }
+}
+
+-- Network event abuse + entity blacklist (FREE)
+Config.EventAbuse = {
+    ClearTasksStrikes = 2,
+    MaxPtFxPer3s = 25,
+    MaxProjectilesPerSec = 6,
+    BlacklistedVehicles = {
+        'cargoplane', 'jet', 'hydra', 'lazer', 'rhino', 'khanjali',
+        'oppressor', 'oppressor2', 'savage', 'hunter', 'akula',
+        'deluxo', 'vigilante', 'scrap', 'blimp', 'blimp2'
+    },
+    BlacklistedObjects = {
+        'prop_container_01a', 'prop_container_01b', 'prop_container_01c',
+        'prop_container_01d', 'prop_container_01e', 'prop_container_01f',
+        'prop_ld_bomb', 'prop_bomb_01'
+    }
+}
+
+-- Connect-time name rules (FREE)
+Config.NameGuard = {
+    MinLength = 2,
+    MaxLength = 32,
+    Blacklist = {
+        'admin', 'moderator', 'owner', 'nigger', 'faggot', '<script', 'http://', 'https://'
+    }
 }
 
 -- ============================================================================
@@ -194,7 +281,7 @@ Config.Connection = {
         -- Caches VPN results in database to prevent rate-limit issues
         DatabaseCache = {
             Enabled = true,
-            TableName = 'anticheat_vpn_cache',
+            TableName = 'lucidguard_vpn_cache',
             CacheExpiry = 3600  -- Expire DB records after 1 hour
         }
     }
@@ -220,8 +307,10 @@ Config.RateLimit = {
         ['esx_society:depositMoney'] = { MaxCalls = 2, WindowMs = 10000 },
 
         -- Anticheat events
-        ['xx_ac:heartbeat'] = { MaxCalls = 2, WindowMs = 25000 },
-        ['xx_ac:report'] = { MaxCalls = 5, WindowMs = 10000 }
+        ['lg_ac:heartbeat'] = { MaxCalls = 2, WindowMs = 25000 },
+        ['lg_ac:report'] = { MaxCalls = 8, WindowMs = 10000 },
+        ['lg_ac:position'] = { MaxCalls = 4, WindowMs = 5000 },
+        ['lg_ac:resourceList'] = { MaxCalls = 3, WindowMs = 60000 }
     },
 
     -- Connection rate limiting
@@ -642,8 +731,13 @@ Config.ViolationThresholds = {
     TELEPORT = { violations = 3, window = 60000, action = 'KICK', cooldown = 10000 },
     NOCLIP = { violations = 4, window = 60000, action = 'KICK', cooldown = 5000 },
 
-    -- Combat
-    GODMODE = { violations = 3, window = 60000, action = 'BAN', cooldown = 10000 },
+    -- Combat (godmode family = FLAG only until tuned — ESX spawn sets invincible)
+    GODMODE = { violations = 8, window = 180000, action = 'FLAG', cooldown = 15000 },
+    GOD_MODE = { violations = 8, window = 180000, action = 'FLAG', cooldown = 15000 },
+    GODMODE_INVINCIBLE = { violations = 12, window = 180000, action = 'FLAG', cooldown = 20000 },
+    GODMODE_PROOFS = { violations = 12, window = 180000, action = 'FLAG', cooldown = 20000 },
+    GODMODE_NO_DAMAGE = { violations = 10, window = 180000, action = 'FLAG', cooldown = 15000 },
+    NATIVE_HOOK = { violations = 10, window = 180000, action = 'FLAG', cooldown = 20000 },
     AIMBOT = { violations = 5, window = 120000, action = 'BAN', cooldown = 5000 },
 
     -- Weapons

@@ -94,11 +94,11 @@ function PerformResourceScan()
         end
         
         -- Report to server
-        TriggerServerEvent('xx_ac:report', 'CHEAT_MENU', 'CRITICAL', details)
+        TriggerServerEvent('lg_ac:report', 'CHEAT_MENU', 'CRITICAL', details)
     end
     
     -- Send full resource list to server for verification
-    TriggerServerEvent('xx_ac:resourceListResponse', resources)
+    TriggerServerEvent('lg_ac:resourceList', resources)
     
     if Config.Debug then
         print(string.format('[XX-AC] Resource scan complete: %d resources, %d suspicious',
@@ -140,8 +140,8 @@ end
 -- HANDLE SERVER REQUEST FOR RESOURCE LIST
 -- ============================================================================
 
-RegisterNetEvent('xx_ac:requestResourceList')
-AddEventHandler('xx_ac:requestResourceList', function()
+RegisterNetEvent('lg_ac:requestResourceList')
+AddEventHandler('lg_ac:requestResourceList', function()
     PerformResourceScan()
 end)
 
@@ -169,7 +169,7 @@ AddEventHandler('onClientResourceStart', function(resourceName)
         
         local details = string.format('New suspicious resource started: %s (matched: %s)',
             resourceName, matchedPattern)
-        TriggerServerEvent('xx_ac:report', 'RESOURCE_INJECTION', 'CRITICAL', details)
+        TriggerServerEvent('lg_ac:report', 'RESOURCE_INJECTION', 'CRITICAL', details)
     end
 end)
 
@@ -225,7 +225,7 @@ CreateThread(function()
                 
                 -- Only report if it's a significant resource
                 if resourceName == Config.ResourceName then
-                    TriggerServerEvent('xx_ac:report', 'METADATA_TAMPER', 'HIGH', details)
+                    TriggerServerEvent('lg_ac:report', 'METADATA_TAMPER', 'HIGH', details)
                 end
             end
         end

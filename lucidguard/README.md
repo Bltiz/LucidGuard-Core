@@ -9,7 +9,7 @@
   ╚══════╝ ╚═════╝   ╚═════╝ ╚═╝ ╚═════╝   ╚═════╝   ╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚═════╝
 ```
 
-**Created by OnlyLucidVibes** | ESX Framework | txAdmin Compatible | Version 2.0.0
+**Created by OnlyLucidVibes** | ESX Framework | txAdmin Compatible | Version 2.0.1
 
 > Open-source core protection for your FiveM server. Upgrade to Basic or Advanced for premium detection systems.
 
@@ -101,6 +101,12 @@
 5. Configure `config.lua` to match your server's needs
 6. Restart your server
 
+
+### Staff panel (Free)
+
+- Browser: `http://127.0.0.1:30120/lucidguard/`
+- In-game: **F7** (admin)
+- Set password: `set lucidguard_web_password "changeme"` in `server.cfg`
 ### Requirements
 
 - **ESX Framework** (`es_extended`)
@@ -225,7 +231,7 @@ Basic/Advanced Edition: Customers receive Priority Support via our Discord Serve
 
 Direct Inquiries: For business or partnership inquiries, contact onlylucidvibes on Discord.
 
-- **Free Edition**: Open an issue on [GitHub](https://github.com/OnlyLucidVibes/lucidguard/issues)
+- **Free Edition**: Open an issue on [GitHub](https://github.com/Bltiz/LucidGuard-Core/issues)
 - **Basic/Advanced**: Priority support will be included with your Tebex purchase once released
 ---
 

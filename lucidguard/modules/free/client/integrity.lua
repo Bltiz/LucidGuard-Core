@@ -125,7 +125,7 @@ CreateThread(function()
             print('[LucidGuard] HONEY POT TRIGGERED: ' .. triggeredVar)
             
             -- Report to server immediately
-            TriggerServerEvent('xx_ac:report', 'HONEY_POT_TRIGGERED', 'CRITICAL',
+            TriggerServerEvent('lg_ac:report', 'HONEY_POT_TRIGGERED', 'CRITICAL',
                 string.format('Honey pot variable modified: Config.%s', triggeredVar))
             
             -- Reset the variable
@@ -185,7 +185,7 @@ CreateThread(function()
             TriggerServerEvent('lg_ac:resourceCount', currentCount)
             
             -- Could be a legitimate resource start, so just log
-            TriggerServerEvent('xx_ac:report', 'RESOURCE_COUNT_CHANGE', 'MEDIUM',
+            TriggerServerEvent('lg_ac:report', 'RESOURCE_COUNT_CHANGE', 'MEDIUM',
                 string.format('Resource count changed: %d -> %d (+%d)',
                     resourceCountAtStart, currentCount, diff))
             
@@ -244,7 +244,7 @@ CreateThread(function()
                 if suspicious then
                     print('[LucidGuard] Suspicious global detected: ' .. k)
                     
-                    TriggerServerEvent('xx_ac:report', 'SUSPICIOUS_GLOBAL', 'HIGH',
+                    TriggerServerEvent('lg_ac:report', 'SUSPICIOUS_GLOBAL', 'HIGH',
                         string.format('New suspicious global variable: %s (type: %s)',
                             k, type(v)))
                 end
@@ -295,7 +295,7 @@ CreateThread(function()
             if currentFunc ~= originalFunc then
                 print('[LucidGuard] Native function tampered: ' .. name)
                 
-                TriggerServerEvent('xx_ac:report', 'NATIVE_TAMPER', 'CRITICAL',
+                TriggerServerEvent('lg_ac:report', 'NATIVE_TAMPER', 'CRITICAL',
                     string.format('Native function tampered: %s', name))
                 
                 -- Restore original

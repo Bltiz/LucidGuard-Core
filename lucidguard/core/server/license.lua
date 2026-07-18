@@ -17,37 +17,48 @@ local TIER_LEVELS = {
 }
 
 -- Detect tier based on which resources are installed and started
+local function syncTierToClients()
+    local tier = Config.Tier or 'FREE'
+    for _, playerId in ipairs(GetPlayers()) do
+        TriggerClientEvent('lg_ac:setTier', tonumber(playerId), tier)
+    end
+end
+
+function LicenseManager.RefreshTier()
+    local hasBasic = GetResourceState('lucidguard-basic') == 'started'
+    local hasAdvanced = GetResourceState('lucidguard-advanced') == 'started'
+    local prev = Config.Tier or 'FREE'
+
+    if hasAdvanced then
+        Config.Tier = 'ADVANCED'
+        Config.TierLevel = 3
+    elseif hasBasic then
+        Config.Tier = 'BASIC'
+        Config.TierLevel = 2
+    else
+        Config.Tier = 'FREE'
+        Config.TierLevel = 1
+    end
+
+    if prev ~= Config.Tier then
+        print(('[^2LucidGuard^0] Tier detected: ^2%s^0'):format(Config.Tier))
+        syncTierToClients()
+    end
+
+    return Config.Tier
+end
+
 function LicenseManager.Init()
-    -- Wait a moment for all resources to start
-    CreateThread(function()
-        Wait(2000)
-
-        local hasBasic = GetResourceState('lucidguard-basic') == 'started'
-        local hasAdvanced = GetResourceState('lucidguard-advanced') == 'started'
-
-        if hasAdvanced and hasBasic then
-            Config.Tier = 'ADVANCED'
-            Config.TierLevel = 3
-            print('[^2LucidGuard^0] Tier detected: ^2ADVANCED^0 (all modules active)')
-        elseif hasAdvanced then
-            Config.Tier = 'ADVANCED'
-            Config.TierLevel = 3
-            print('[^2LucidGuard^0] Tier detected: ^2ADVANCED^0 (advanced modules active)')
-        elseif hasBasic then
-            Config.Tier = 'BASIC'
-            Config.TierLevel = 2
-            print('[^3LucidGuard^0] Tier detected: ^3BASIC^0 (basic modules active)')
-        else
-            Config.Tier = 'FREE'
-            Config.TierLevel = 1
-            print('[^3LucidGuard^0] Tier detected: ^1FREE^0 (core modules only)')
-            print('[^3LucidGuard^0] Upgrade at your Tebex store for Basic & Advanced features.')
-        end
-    end)
-
-    -- Set defaults immediately (thread above will update)
     Config.Tier = 'FREE'
     Config.TierLevel = 1
+
+    CreateThread(function()
+        Wait(2000)
+        LicenseManager.RefreshTier()
+        -- Advanced may finish starting after the first probe
+        Wait(3000)
+        LicenseManager.RefreshTier()
+    end)
 end
 
 -- Gate function: modules call this to check if they should run
@@ -69,10 +80,14 @@ end
 -- Initialize on load
 LicenseManager.Init()
 
--- Sync tier to clients on join
+-- Sync tier to clients on join (delay so client handlers exist)
 AddEventHandler('playerJoining', function()
     local src = source
-    TriggerClientEvent('lg_ac:setTier', src, Config.Tier)
+    SetTimeout(3000, function()
+        if GetPlayerName(src) then
+            TriggerClientEvent('lg_ac:setTier', src, Config.Tier or 'FREE')
+        end
+    end)
 end)
 
 -- Global access
@@ -82,5 +97,6 @@ _G.LicenseManager = LicenseManager
 exports('RequiresTier', LicenseManager.RequiresTier)
 exports('GetTier', LicenseManager.GetTier)
 exports('GetTierLevel', LicenseManager.GetTierLevel)
+exports('RefreshTier', LicenseManager.RefreshTier)
 
 print('[^2LucidGuard^0] Tier Detection loaded')

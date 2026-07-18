@@ -61,47 +61,42 @@ end
 -- ============================================================================
 
 CreateThread(function()
-    -- Print the banner first
     PrintBanner()
-    
+
     while ESX == nil do
-        TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
-        
-        -- Modern ESX method
-        if ESX == nil then
-            pcall(function()
-                ESX = exports['es_extended']:getSharedObject()
-            end)
+        local ok, obj = pcall(function()
+            return exports['es_extended']:getSharedObject()
+        end)
+        if ok and obj then
+            ESX = obj
         end
-        
         Wait(100)
     end
-    
+
     isReady = true
-    
-    print('^2[LucidGuard]^7 ✓ ESX Framework initialized')
-    print('^2[LucidGuard]^7 ✓ Anticheat system loaded successfully')
+
+    print('^2[LucidGuard]^7 ESX Framework initialized')
+    print('^2[LucidGuard]^7 Anticheat core loaded (tier: ' .. tostring(Config.Tier or 'FREE') .. ')')
     print('')
-    print('^3[LucidGuard]^7 Active Protection Modules:')
-    
+    print('^3[LucidGuard]^7 Active Free modules:')
+
     local enabledCount = 0
     local disabledCount = 0
-    
+
     for module, enabled in pairs(Config.Modules) do
         if enabled then
-            print('^2[LucidGuard]^7   ✓ ' .. module)
+            print('^2[LucidGuard]^7  - ' .. module)
             enabledCount = enabledCount + 1
         else
             disabledCount = disabledCount + 1
         end
     end
-    
+
     print('')
-    print('^5[LucidGuard]^7 ═══════════════════════════════════════════════════')
-    print('^2[LucidGuard]^7 ' .. enabledCount .. ' modules enabled | ' .. disabledCount .. ' modules disabled')
-    print('^5[LucidGuard]^7 ═══════════════════════════════════════════════════')
-    print('')
-    print('^2[LucidGuard]^7 🛡️  Server is now protected! ^0')
+    print(('^2[LucidGuard]^7 %s modules enabled | %s disabled'):format(enabledCount, disabledCount))
+    if Config.PlayerSafety and Config.PlayerSafety.SafeMode and Config.PlayerSafety.SafeMode.Enabled then
+        print('^3[LucidGuard]^7 Safe Mode ON — detections log/review only (no auto bans)')
+    end
     print('')
 end)
 
@@ -209,17 +204,20 @@ function InitPlayerData(playerId)
         }
     }
     
-    -- Check admin status
+    -- Check admin status and sync to client
     CreateThread(function()
-        Wait(2000) -- Wait for ESX to load player
+        Wait(2000)
         if ESX then
             local xPlayer = ESX.GetPlayerFromId(playerId)
-            if xPlayer then
+            if xPlayer and PlayerData[playerId] then
                 local group = xPlayer.getGroup()
-                PlayerData[playerId].isAdmin = Config.TableContains(Config.AdminGroups, group)
-                
-                if PlayerData[playerId].isAdmin then
-                    Log('INFO', string.format('Admin detected: %s (%s) - Group: %s', 
+                local isAdmin = Config.TableContains(Config.AdminGroups, group)
+                PlayerData[playerId].isAdmin = isAdmin
+                TriggerClientEvent('lg_ac:setAdminStatus', playerId, isAdmin)
+                TriggerClientEvent('lg_ac:setTier', playerId, Config.Tier or 'FREE')
+
+                if isAdmin then
+                    Log('INFO', string.format('Admin detected: %s (%s) - Group: %s',
                         GetPlayerName(playerId), playerId, group))
                 end
             end
@@ -420,23 +418,7 @@ AddEventHandler('esx:playerLoaded', function(playerId, xPlayer)
     end
 end)
 
--- ============================================================================
--- RECEIVE CLIENT DETECTIONS
--- ============================================================================
-
-RegisterNetEvent('xx_ac:detection')
-AddEventHandler('xx_ac:detection', function(detectionType, severity, details)
-    local playerId = source
-    
-    -- Validate source
-    if not playerId or playerId <= 0 then return end
-    
-    -- Admin immunity
-    if IsPlayerAdmin(playerId) then return end
-    
-    -- Process detection
-    ProcessDetection(playerId, detectionType, severity, details)
-end)
+-- Client detections enter via SecureEvent('lg_ac:report') in ratelimit.lua
 
 -- Process detection (called from various modules)
 function ProcessDetection(playerId, detectionType, severity, details)
@@ -499,6 +481,14 @@ function ProcessDetection(playerId, detectionType, severity, details)
 
     -- Log to console
     LogDetection(severity, playerId, detectionType, details)
+
+    -- Live admin panel feed + risk score
+    if PanelOnDetection then
+        PanelOnDetection(playerId, detectionType, severity, details)
+    end
+
+    -- Advanced / external listeners (hardban, webhooks, etc.)
+    TriggerEvent('lucidguard:onDetection', playerId, detectionType, severity, details)
 
     -- Send to Discord
     if Config.Discord.Enabled then

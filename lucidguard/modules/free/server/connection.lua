@@ -19,66 +19,44 @@ local connectionAttempts = {} -- Track connection spam
 -- Create VPN cache table if it doesn't exist
 function InitializeVPNCacheTable()
     if not Config.Connection.VPNDetection.DatabaseCache.Enabled then return end
-    
-    MySQL.Async.execute(
-        'CREATE TABLE IF NOT EXISTS `' .. Config.Connection.VPNDetection.DatabaseCache.TableName .. '` (' ..
-        '`id` INT AUTO_INCREMENT PRIMARY KEY, ' ..
-        '`ip_address` VARCHAR(45) UNIQUE NOT NULL, ' ..
-        '`is_vpn` BOOLEAN NOT NULL, ' ..
-        '`provider` VARCHAR(255), ' ..
-        '`country` VARCHAR(100), ' ..
-        '`cached_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, ' ..
-        'INDEX idx_ip (ip_address), ' ..
-        'INDEX idx_cached (cached_at)' ..
-        ')',
-        {},
-        function(rowsChanged) end
-    )
+    if GetResourceState('oxmysql') ~= 'started' then return end
+
+    local tableName = Config.Connection.VPNDetection.DatabaseCache.TableName or 'lucidguard_vpn_cache'
+    MySQL.query.await(([[
+        CREATE TABLE IF NOT EXISTS `%s` (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            ip_address VARCHAR(45) UNIQUE NOT NULL,
+            is_vpn TINYINT NOT NULL,
+            provider VARCHAR(255),
+            country VARCHAR(100),
+            cached_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_ip (ip_address),
+            INDEX idx_cached (cached_at)
+        )
+    ]]):format(tableName))
 end
 
--- Get VPN result from database cache
 function GetVPNCacheFromDB(ip)
     if not Config.Connection.VPNDetection.DatabaseCache.Enabled then return nil end
-    
-    local result = nil
-    local done = false
-    
-    MySQL.Async.fetchAll(
-        'SELECT * FROM `' .. Config.Connection.VPNDetection.DatabaseCache.TableName .. '` WHERE ip_address = @ip AND UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(cached_at) < @expiry',
-        { ['@ip'] = ip, ['@expiry'] = Config.Connection.VPNDetection.DatabaseCache.CacheExpiry },
-        function(rows)
-            if rows and rows[1] then
-                result = rows[1]
-            end
-            done = true
-        end
+    if GetResourceState('oxmysql') ~= 'started' then return nil end
+
+    local tableName = Config.Connection.VPNDetection.DatabaseCache.TableName or 'lucidguard_vpn_cache'
+    local expiry = Config.Connection.VPNDetection.DatabaseCache.CacheExpiry or 86400
+    return MySQL.single.await(
+        ('SELECT * FROM `%s` WHERE ip_address = ? AND UNIX_TIMESTAMP(NOW()) - UNIX_TIMESTAMP(cached_at) < ?'):format(tableName),
+        { ip, expiry }
     )
-    
-    -- Wait for async query to complete (max 2 seconds)
-    local waited = 0
-    while not done and waited < 2000 do
-        Wait(10)
-        waited = waited + 10
-    end
-    
-    return result
 end
 
--- Cache VPN result to database
 function CacheVPNToDB(ip, isVPN, data)
     if not Config.Connection.VPNDetection.DatabaseCache.Enabled then return end
-    
-    MySQL.Async.execute(
-        'INSERT INTO `' .. Config.Connection.VPNDetection.DatabaseCache.TableName .. '` (ip_address, is_vpn, provider, country) ' ..
-        'VALUES (@ip, @isVPN, @provider, @country) ' ..
-        'ON DUPLICATE KEY UPDATE is_vpn = @isVPN, provider = @provider, country = @country, cached_at = CURRENT_TIMESTAMP',
-        {
-            ['@ip'] = ip,
-            ['@isVPN'] = isVPN and 1 or 0,
-            ['@provider'] = data.isp or 'Unknown',
-            ['@country'] = data.country or 'Unknown'
-        },
-        function(rowsChanged) end
+    if GetResourceState('oxmysql') ~= 'started' then return end
+
+    local tableName = Config.Connection.VPNDetection.DatabaseCache.TableName or 'lucidguard_vpn_cache'
+    data = data or {}
+    MySQL.insert.await(
+        ('INSERT INTO `%s` (ip_address, is_vpn, provider, country) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE is_vpn = VALUES(is_vpn), provider = VALUES(provider), country = VALUES(country), cached_at = CURRENT_TIMESTAMP'):format(tableName),
+        { ip, isVPN and 1 or 0, data.isp or 'Unknown', data.country or 'Unknown' }
     )
 end
 
@@ -94,6 +72,32 @@ AddEventHandler('playerConnecting', function(playerName, setKickReason, deferral
     Wait(0)
     
     deferrals.update('🛡️ LucidGuard: Checking your connection...')
+
+    -- Name guard (invalid / blacklisted / spoofed names)
+    if Config.Modules.NameGuard then
+        local ng = Config.NameGuard or {}
+        local name = playerName or ''
+        local lower = string.lower(name)
+        local bad, why = false, nil
+        if name == '' or #name < (ng.MinLength or 2) then
+            bad, why = true, 'too_short'
+        elseif #name > (ng.MaxLength or 32) then
+            bad, why = true, 'too_long'
+        elseif name:find('[\1-\8\11\12\14-\31]') then
+            bad, why = true, 'control_chars'
+        else
+            for _, pat in ipairs(ng.Blacklist or {}) do
+                if lower:find(string.lower(pat), 1, true) then
+                    bad, why = true, 'blacklisted'
+                    break
+                end
+            end
+        end
+        if bad then
+            deferrals.done(('LucidGuard: invalid player name (%s)'):format(why or 'rejected'))
+            return
+        end
+    end
     
     -- Get all identifiers
     local identifiers = {}
@@ -104,7 +108,8 @@ AddEventHandler('playerConnecting', function(playerName, setKickReason, deferral
             table.insert(identifiers, id)
             
             -- Parse identifier type
-            if string.find(id, 'license:') then identifiers.license = id
+            if string.find(id, 'license2:') then identifiers.license2 = id
+            elseif string.find(id, 'license:') then identifiers.license = id
             elseif string.find(id, 'steam:') then identifiers.steam = id
             elseif string.find(id, 'discord:') then identifiers.discord = id
             elseif string.find(id, 'ip:') then identifiers.ip = id
@@ -114,29 +119,38 @@ AddEventHandler('playerConnecting', function(playerName, setKickReason, deferral
     end
     
     Wait(100)
-    deferrals.update('🛡️ LucidGuard: Verifying identifiers...')
+    deferrals.update('LucidGuard: Verifying identifiers...')
+
+    local tokens = {}
+    local numTokens = GetNumPlayerTokens(playerId)
+    for i = 0, numTokens - 1 do
+        local token = GetPlayerToken(playerId, i)
+        if token then tokens[#tokens + 1] = token end
+    end
+
+    -- Persistent ban store (oxmysql)
+    if BanStore and BanStore.IsBanned then
+        local banned, row = BanStore.IsBanned(identifiers, tokens)
+        if banned then
+            Log('ALERT', string.format('Persistent ban hit: %s (%s)', playerName, row and row.reason or 'n/a'))
+            deferrals.done('You are banned from this server. Appeal with staff.')
+            return
+        end
+    end
     
     -- ========================================================================
-    -- CHECK 1: Hardware Token Ban Check
+    -- CHECK 1: Hardware Token Ban Check (memory cache)
     -- ========================================================================
     
     if Config.Connection.CheckHardwareTokens then
-        deferrals.update('🛡️ LucidGuard: Checking hardware tokens...')
+        deferrals.update('LucidGuard: Checking hardware tokens...')
         
-        local tokens = {}
-        local numTokens = GetNumPlayerTokens(playerId)
-        for i = 0, numTokens - 1 do
-            local token = GetPlayerToken(playerId, i)
-            if token then
-                table.insert(tokens, token)
-                
-                -- Check against banned tokens
-                if bannedTokens[token] then
-                    Log('ALERT', string.format('Banned token detected: %s attempting to connect', playerName))
-                    SendConnectionAlert(playerId, 'Hardware ban evasion attempt')
-                    deferrals.done('🚫 You are banned from this server. Appeal via txAdmin.')
-                    return
-                end
+        for _, token in ipairs(tokens) do
+            if bannedTokens[token] then
+                Log('ALERT', string.format('Banned token detected: %s attempting to connect', playerName))
+                SendConnectionAlert(playerId, 'Hardware ban evasion attempt')
+                deferrals.done('You are banned from this server. Appeal via txAdmin.')
+                return
             end
         end
     end

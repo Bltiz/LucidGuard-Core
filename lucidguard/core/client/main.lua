@@ -66,8 +66,8 @@ function IsClientAdmin()
 end
 
 -- Called from server to update admin status
-RegisterNetEvent('xx_ac:setAdminStatus')
-AddEventHandler('xx_ac:setAdminStatus', function(status)
+RegisterNetEvent('lg_ac:setAdminStatus')
+AddEventHandler('lg_ac:setAdminStatus', function(status)
     isAdmin = status
 end)
 
@@ -110,7 +110,7 @@ function ReportDetection(detectionType, severity, details)
         context.interiorId, context.speed
     )
 
-    TriggerServerEvent('xx_ac:report', detectionType, severity, (details or '') .. contextStr)
+    TriggerServerEvent('lg_ac:report', detectionType, severity, (details or '') .. contextStr)
 end
 
 -- ============================================================================
@@ -157,10 +157,10 @@ CreateThread(function()
         if currentInterior ~= lastInteriorId then
             lastInteriorId = currentInterior
             -- Notify teleport detection to reset (interior transition = legitimate teleport)
-            TriggerEvent('xx_ac:resetTeleportCheck')
+            TriggerEvent('lg_ac:resetTeleportCheck')
         end
 
-        TriggerServerEvent('xx_ac:position', {
+        TriggerServerEvent('lg_ac:position', {
             x = coords.x,
             y = coords.y,
             z = coords.z
@@ -172,8 +172,8 @@ end)
 -- RESOURCE LIST REQUEST HANDLER
 -- ============================================================================
 
-RegisterNetEvent('xx_ac:requestResourceList')
-AddEventHandler('xx_ac:requestResourceList', function()
+RegisterNetEvent('lg_ac:requestResourceList')
+AddEventHandler('lg_ac:requestResourceList', function()
     -- Wait for slow PCs where resources may still be starting
     Wait(2000)
 
@@ -186,7 +186,7 @@ AddEventHandler('xx_ac:requestResourceList', function()
         end
     end
 
-    TriggerServerEvent('xx_ac:resourceListResponse', resources)
+    TriggerServerEvent('lg_ac:resourceList', resources)
 end)
 
 -- ============================================================================
@@ -196,7 +196,7 @@ end)
 AddEventHandler('onResourceStop', function(resourceName)
     if resourceName == Config.ResourceName then
         -- Someone tried to stop the anticheat
-        TriggerServerEvent('xx_ac:report', 'RESOURCE_TAMPER', 'CRITICAL', 
+        TriggerServerEvent('lg_ac:report', 'RESOURCE_TAMPER', 'CRITICAL', 
             'Anticheat resource stop attempted')
     end
 end)

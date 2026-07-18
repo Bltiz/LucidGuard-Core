@@ -53,15 +53,20 @@ function ExecutePunishment(playerId, severity, detectionType, details)
         end)
         
     elseif action == 'ban' then
-        -- Note: Since we're using txAdmin for bans, this just kicks with ban recommendation
         local kickMessage = severityConfig.KickMessage or 'You have been banned by the anticheat.'
         kickMessage = kickMessage .. '\n\nDetection: ' .. detectionType
-        kickMessage = kickMessage .. '\n\nAppeal via txAdmin panel if you believe this is an error.'
+        kickMessage = kickMessage .. '\n\nAppeal with staff if you believe this is an error.'
+
+        if BanStore and BanStore.AddBan then
+            BanStore.AddBan(playerId, 'LucidGuard: ' .. detectionType, detectionType)
+        elseif BanPlayerTokens then
+            BanPlayerTokens(playerId, 'LucidGuard: ' .. detectionType)
+        end
         
         CreateThread(function()
             Wait(500)
             DropPlayer(playerId, kickMessage)
-            Log('BAN', string.format('Player kicked (ban recommended): %s (ID: %s)', playerName, playerId))
+            Log('BAN', string.format('Player banned+kicked: %s (ID: %s)', playerName, playerId))
         end)
     end
 end

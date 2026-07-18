@@ -73,39 +73,33 @@ end
 -- ============================================================================
 
 function SecureEvent(eventName, callback)
-    RegisterNetEvent(eventName)
-    AddEventHandler(eventName, function(...)
+    -- Single RegisterNetEvent(handler) form = net-safe (avoids split Register+AddEventHandler issues)
+    RegisterNetEvent(eventName, function(...)
         local playerId = source
-        
-        -- Validate source
+
         if not playerId or playerId <= 0 then
             Log('WARN', string.format('Invalid source for event: %s', eventName))
             return
         end
-        
-        -- Check rate limit
+
         local isLimited, callCount = CheckRateLimit(playerId, eventName)
-        
+
         if isLimited then
             local playerName = GetPlayerName(playerId) or 'Unknown'
             Log('ALERT', string.format('Rate limit exceeded: %s (%s) on event %s (%d calls)',
                 playerName, playerId, eventName, callCount))
-            
-            -- Send Discord alert
+
             if Config.Discord.Enabled then
                 SendRateLimitAlert(playerId, eventName, callCount)
             end
-            
-            -- Kick player
+
             DropPlayer(playerId, 'Rate limit exceeded. This has been logged.')
             return
         end
-        
-        -- Execute original callback
+
         callback(playerId, ...)
     end)
-    
-    -- Track protected events
+
     protectedEvents[eventName] = true
 end
 
@@ -144,7 +138,7 @@ end)
 -- ============================================================================
 
 -- Heartbeat event
-SecureEvent('xx_ac:heartbeat', function(playerId)
+SecureEvent('lg_ac:heartbeat', function(playerId)
     local playerData = GetPlayerData(playerId)
     if playerData then
         playerData.lastHeartbeat = os.time()
@@ -153,7 +147,7 @@ SecureEvent('xx_ac:heartbeat', function(playerId)
 end)
 
 -- Detection report event
-SecureEvent('xx_ac:report', function(playerId, detectionType, severity, details)
+SecureEvent('lg_ac:report', function(playerId, detectionType, severity, details)
     -- Admin immunity
     if IsPlayerAdmin(playerId) then return end
     
@@ -162,7 +156,7 @@ SecureEvent('xx_ac:report', function(playerId, detectionType, severity, details)
 end)
 
 -- Resource list report
-SecureEvent('xx_ac:resourceList', function(playerId, resources)
+SecureEvent('lg_ac:resourceList', function(playerId, resources)
     -- Admin immunity
     if IsPlayerAdmin(playerId) then return end
     
@@ -190,7 +184,7 @@ SecureEvent('xx_ac:resourceList', function(playerId, resources)
 end)
 
 -- Position update (for tracking + FalsePositive stability)
-SecureEvent('xx_ac:position', function(playerId, coords)
+SecureEvent('lg_ac:position', function(playerId, coords)
     local playerData = GetPlayerData(playerId)
     if playerData and coords then
         playerData.lastPosition = coords

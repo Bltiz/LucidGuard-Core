@@ -1,49 +1,113 @@
-# $${\color{#9d50bb}🛡️ \space LucidGuard: \space The \space Foundation \space of \space Server \space Security}$$
-### $${\color{#9d50bb}Open-Source \space Core \space | \space Professional \space Detection \space | \space Zero-Trust \space Architecture}$$
-🌌 Open-Source Core | 🛰️ Professional Detection | 💎 Zero-Trust Architecture
-The modular open-source engine for LucidGuard. Featuring high-performance violation management, state-aware false-positive prevention, and advanced core security for FiveM servers.
-LucidGuard is a high-performance, modular anti-cheat engine designed specifically for FiveM. Unlike "all-in-one" scripts that bloat your server, LucidGuard provides a rock-solid Free Core foundation focused on high-speed violation management and state-aware protection.
+# LucidGuard — Free FiveM Anti-Cheat Core
 
-Our architecture is built on a Zero-Trust model, ensuring that every player action is validated through our intelligent "Brain" before a verdict is reached, virtually eliminating false positives caused by lag or game physics.
+```
+  ██╗     ██╗   ██╗  ██████╗ ██╗ ██████╗   ██████╗  ██╗   ██╗  █████╗  ██████╗  ██████╗
+  ██║     ██║   ██║ ██╔════╝ ██║ ██╔══██╗ ██╔════╝  ██║   ██║ ██╔══██╗ ██╔══██╗ ██╔══██╗
+  ██║     ██║   ██║ ██║      ██║ ██║  ██║ ██║  ███╗ ██║   ██║ ███████║ ██████╔╝ ██║  ██║
+  ██║     ██║   ██║ ██║      ██║ ██║  ██║ ██║   ██║ ██║   ██║ ██╔══██║ ██╔══██╗ ██║  ██║
+  ███████╗╚██████╔╝ ╚██████╗ ██║ ██████╔╝ ╚██████╔╝ ╚██████╔╝ ██║  ██║ ██║  ██║ ██████╔╝
+  ╚══════╝ ╚═════╝   ╚═════╝ ╚═╝ ╚═════╝   ╚═════╝   ╚═════╝  ╚═╝  ╚═╝ ╚═╝  ╚═╝ ╚═════╝
+```
 
-✨ Core Features (Free Edition)
-🧠 Intelligent Violation Manager: Tracks suspicious behavior across multiple categories before issuing a punishment.
+**Created by OnlyLucidVibes** · ESX · Version **2.0.1**
 
-🛰️ State-Aware Protection: Automatically bypasses detections during legitimate game states like spawning, falling, or being in a ragdoll state.
+Open-source **Free Core** protection for FiveM. Basic and Advanced detection modules are sold separately (not in this repo).
 
-⚡ Ultra-Low Resmon: Optimized Lua logic that maintains a near-zero impact on client and server FPS.
-
-🌐 Universal Bridge: Built-in exports that allow any external script or module to communicate directly with the core.
-
-📡 Advanced Logging: Detailed Discord and console logs featuring player identifiers, location data, and detection evidence.
-
-🚀 Expansion Modules (Coming Soon)
-
-
-<img width="479" height="241" alt="Screenshot 2026-02-06 001734" src="https://github.com/user-attachments/assets/e7978c78-2063-499b-8fec-796ba736f537" />
-
-🛠️ Quick Installation
-Download the latest release.
-
-Drag & Drop the lucidguard folder into your resources directory.
-
-Add ensure lucidguard to your server.cfg.
-
-Configure your Discord Webhooks in the config.lua.
-
-📞 Support & Community
-💬 Discord Support: Priority assistance for Basic/Advanced users via onlylucidvibes.
-
-🐛 Bug Reports: Please use the GitHub Issues tab for the Free Core.
-
-🛒 Store: Visit our Tebex Store (Coming Soon).
+Repository: [Bltiz/LucidGuard-Core](https://github.com/Bltiz/LucidGuard-Core)
 
 ---
 
-# $${\color{#9d50bb}⚖️ \space Licensing \space and \space Copyright}$$
+## What's new in 2.0.1
 
-# $${\color{#9d50bb}LucidGuard \space Core \space is \space licensed \space under \space the \space GPL-3.0 \space License}$$
-
-> **This protects the open-source community while ensuring the core remains free and improved by all. Basic and Advanced modules are Proprietary Software and are NOT included in this repository.**
+- Staff **browser panel** (`http://127.0.0.1:30120/lucidguard/`) + in-game **F7** panel UI
+- Ban store / case evidence hooks, safer punishment pipeline
+- Free-tier hardening (connection screening, entity lockdown, event abuse helpers)
+- SQL schema under `lucidguard/sql/`
+- Safer defaults (panel password via convar; Safe Mode on by default)
 
 ---
+
+## Feature tiers
+
+| Area | Free (this repo) | Basic | Advanced |
+|------|:----------------:|:-----:|:--------:|
+| Entity lockdown, connection screening, resource scanner | Y | Y | Y |
+| Event burst / junk traps, vector checks, integrity honeypots | Y | Y | Y |
+| Explosion filter, Discord logs, Safe Mode, smart FP filter | Y | Y | Y |
+| Heartbeat + rate limiting | Y | Y | Y |
+| Staff web panel + F7 NUI | Y | Y | Y |
+| Speed / teleport / godmode / weapons / noclip / aimbot | - | Y | Y |
+| Economy, combat-log, chat / latency / state-bag checks | - | Y | Y |
+| Shadowban, event tokens, file hash, ESP / screenshots | - | - | Y |
+| Admin HWID whitelist, txAdmin hooks, silent spectate | - | - | Y |
+
+---
+
+## Install (Free)
+
+1. Download this repo (or clone it).
+2. Copy the **`lucidguard`** folder into your server `resources/`.
+3. In `server.cfg`:
+   ```cfg
+   ensure oxmysql
+   ensure es_extended
+   ensure lucidguard
+
+   set discord_webhook "https://discord.com/api/webhooks/YOUR_WEBHOOK"
+   set lucidguard_web_password "changeme"
+   ```
+4. Import `lucidguard/sql/lucidguard.sql` if you use the ban/case tables.
+5. Edit `lucidguard/config.lua` as needed.
+6. Restart the server.
+
+### Optional panel convars
+
+```cfg
+set lucidguard_web_password "your-strong-password"
+# set lucidguard_panel_url "http://YOUR_PUBLIC_IP:30120/lucidguard/"
+# set lucidguard_case_webhook "https://discord.com/api/webhooks/..."
+# set lucidguard_screenshot_webhook "https://discord.com/api/webhooks/..."
+```
+
+- Local panel: `http://127.0.0.1:30120/lucidguard/`
+- In-game: **F7** (admin groups in `config.lua`)
+
+---
+
+## Requirements
+
+- ESX (`es_extended`)
+- `oxmysql`
+- OneSync recommended
+- Discord webhook for logging (optional but recommended)
+- `screenshot-basic` only if you enable screenshot features
+
+---
+
+## Basic / Advanced (not included here)
+
+Paid modules ship via Tebex / Keymaster as separate resources:
+
+```cfg
+ensure lucidguard
+ensure lucidguard-basic      # purchased
+ensure lucidguard-advanced   # purchased
+```
+
+They are **not** published in this open-source repository.
+
+---
+
+## Support
+
+- **Free:** [GitHub Issues](https://github.com/Bltiz/LucidGuard-Core/issues)
+- **Basic / Advanced:** Discord — `onlylucidvibes`
+
+---
+
+## License
+
+- **Free Core** in this repository: **GPL-3.0** (see `LICENSE`)
+- **Basic / Advanced** modules: proprietary (Tebex / escrow) — not in this repo
+
+Copyright (c) 2024–2026 OnlyLucidVibes.

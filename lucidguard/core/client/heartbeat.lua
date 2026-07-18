@@ -32,7 +32,7 @@ CreateThread(function()
         Wait(Config.Heartbeat.Interval)
         
         -- Send heartbeat to server with client timestamp
-        TriggerServerEvent('xx_ac:heartbeat', GetGameTimer())
+        TriggerServerEvent('lg_ac:heartbeat', GetGameTimer())
         
         if Config.Debug then
             print('[LucidGuard] Heartbeat sent')
@@ -84,10 +84,10 @@ end)
 -- HANDLE SERVER HEARTBEAT CHECK
 -- ============================================================================
 
-RegisterNetEvent('xx_ac:heartbeatCheck')
-AddEventHandler('xx_ac:heartbeatCheck', function()
+RegisterNetEvent('lg_ac:heartbeatCheck')
+AddEventHandler('lg_ac:heartbeatCheck', function()
     -- Server is checking if we're responsive
-    TriggerServerEvent('xx_ac:heartbeatResponse', GetGameTimer())
+    TriggerServerEvent('lg_ac:heartbeatResponse', GetGameTimer())
 end)
 
 -- ============================================================================
@@ -105,7 +105,7 @@ CreateThread(function()
         
         if not heartbeatActive and Config.Heartbeat.Enabled then
             -- Heartbeat was disabled somehow - this shouldn't happen
-            TriggerServerEvent('xx_ac:report', 'HEARTBEAT_TAMPER', 'HIGH', 
+            TriggerServerEvent('lg_ac:report', 'HEARTBEAT_TAMPER', 'HIGH', 
                 'Heartbeat system was disabled')
             
             -- Try to restart it

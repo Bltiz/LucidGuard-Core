@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LucidGuard</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div id="app" class="hidden">
+    <div class="shell">
+      <header class="top">
+        <div class="brand">
+          <div class="mark" aria-hidden="true"></div>
+          <div>
+            <h1>LucidGuard</h1>
+            <p class="sub">F7 · Live ops</p>
+          </div>
+        </div>
+        <div class="meta">
+          <span id="tierBadge" class="badge">FREE</span>
+          <span id="safeBadge" class="badge warn">SAFE MODE</span>
+          <span id="onlineCount" class="stat">0 online</span>
+          <button id="btnRefresh" class="btn ghost" type="button">Refresh</button>
+          <button id="btnClose" class="btn ghost" type="button">Close</button>
+        </div>
+      </header>
+
+      <div id="toastBar" class="toast-bar" hidden></div>
+
+      <nav class="tabs">
+        <button class="tab active" data-tab="live" type="button">Live</button>
+        <button class="tab" data-tab="players" type="button">Players</button>
+        <button class="tab" data-tab="tools" type="button">Tools</button>
+        <button class="tab" data-tab="ops" type="button">Ops</button>
+        <button class="tab" data-tab="cases" type="button">Cases</button>
+        <button class="tab" data-tab="watch" type="button">Watch</button>
+        <button class="tab" data-tab="controls" type="button">Controls</button>
+      </nav>
+
+      <main>
+        <section id="tab-live" class="panel active">
+          <div class="stat-row">
+            <div class="stat-card"><span>Online</span><strong id="statOnline">0</strong></div>
+            <div class="stat-card"><span>Feed</span><strong id="statFeed">0</strong></div>
+            <div class="stat-card"><span>Cases</span><strong id="statCases">0</strong></div>
+            <div class="stat-card"><span>Shadow</span><strong id="statSb">0</strong></div>
+            <div class="stat-card"><span>Watch</span><strong id="statWatch">0</strong></div>
+          </div>
+          <div class="panel-head">
+            <div class="filters">
+              <button class="chip active" data-sev="ALL" type="button">All</button>
+              <button class="chip" data-sev="CRITICAL" type="button">Crit</button>
+              <button class="chip" data-sev="HIGH" type="button">High</button>
+              <button class="chip" data-sev="MEDIUM" type="button">Med</button>
+              <button class="chip" data-sev="SYSTEM" type="button">Sys</button>
+            </div>
+            <button id="btnClearFeed" class="btn ghost sm" type="button">Clear</button>
+          </div>
+          <div id="feed" class="feed"></div>
+        </section>
+
+        <section id="tab-players" class="panel">
+          <div class="panel-head">
+            <h2>Players <span class="muted">by risk</span></h2>
+            <label class="check"><input type="checkbox" id="watchOnly" /> Watched only</label>
+          </div>
+          <div id="players" class="players"></div>
+        </section>
+
+        <section id="tab-tools" class="panel">
+          <div class="tools-grid">
+            <div class="tool">
+              <h3>Announce</h3>
+              <textarea id="announceText" rows="2" placeholder="Staff message to everyone…"></textarea>
+              <button id="btnAnnounce" class="btn primary" type="button">Send</button>
+            </div>
+            <div class="tool">
+              <h3>Quick punish</h3>
+              <div class="inline">
+                <input id="quickId" type="number" min="1" placeholder="ID" />
+                <input id="quickReason" type="text" placeholder="Reason" />
+              </div>
+              <div class="inline">
+                <button id="btnQuickKick" class="btn sm" type="button">Kick</button>
+                <button id="btnQuickBan" class="btn sm danger" type="button">Ban</button>
+                <button id="btnQuickWarn" class="btn sm" type="button">Warn</button>
+              </div>
+            </div>
+            <div class="tool">
+              <h3>Shadowban</h3>
+              <div class="inline">
+                <input id="sbId" type="number" min="1" placeholder="ID" />
+                <button id="btnShadow" class="btn primary sm" type="button">Queue</button>
+              </div>
+            </div>
+            <div class="tool">
+              <h3>Watchlist</h3>
+              <div class="inline">
+                <input id="watchId" type="number" min="1" placeholder="ID" />
+                <input id="watchReason" type="text" placeholder="Reason" />
+              </div>
+              <button id="btnWatch" class="btn sm" type="button">Add watch</button>
+            </div>
+            <div class="tool">
+              <h3>Freeze</h3>
+              <div class="inline">
+                <input id="freezeId" type="number" min="1" placeholder="ID" />
+                <button id="btnFreeze" class="btn sm" type="button">Freeze</button>
+                <button id="btnUnfreeze" class="btn sm ghost" type="button">Unfreeze</button>
+              </div>
+            </div>
+            <div class="tool">
+              <h3>Screenshot</h3>
+              <div class="inline">
+                <input id="ssId" type="number" min="1" placeholder="ID" />
+                <button id="btnShot" class="btn sm" type="button">Request</button>
+              </div>
+            </div>
+            <div class="tool">
+              <h3>ID lookup</h3>
+              <div class="inline">
+                <input id="idLookup" type="number" min="1" placeholder="ID" />
+                <button id="btnIds" class="btn sm" type="button">Lookup</button>
+              </div>
+              <pre id="idResult" class="id-result"></pre>
+            </div>
+            <div class="tool">
+              <h3>Risk / recheck</h3>
+              <div class="inline">
+                <input id="clearRiskId" type="number" min="1" placeholder="ID" />
+                <button id="btnClearRisk" class="btn sm" type="button">Clear risk</button>
+                <button id="btnRecheck" class="btn sm" type="button">Force AC</button>
+              </div>
+            </div>
+            <div class="tool">
+              <h3>Discord test</h3>
+              <p class="muted">Sends a sample case embed to lucidguard_case_webhook.</p>
+              <button id="btnTestCaseHook" class="btn primary sm" type="button">Test case webhook</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-ops" class="panel">
+          <div class="ops-grid">
+            <div>
+              <h3 class="ops-title">Shadowban queue</h3>
+              <div id="shadowban" class="feed"></div>
+            </div>
+            <div>
+              <h3 class="ops-title">Recent bans</h3>
+              <div id="bans" class="feed"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="tab-cases" class="panel">
+          <div class="panel-head">
+            <h2>Evidence cases</h2>
+            <button id="btnCasesRefresh" class="btn ghost sm" type="button">Refresh</button>
+          </div>
+          <div id="cases" class="feed"></div>
+          <div id="timeline" class="feed timeline"></div>
+        </section>
+
+        <section id="tab-watch" class="panel">
+          <div class="panel-head">
+            <h2>Watchlist</h2>
+          </div>
+          <div id="watchlist" class="feed"></div>
+        </section>
+
+        <section id="tab-controls" class="panel">
+          <div class="controls">
+            <div class="control-row">
+              <div>
+                <strong>Safe Mode</strong>
+                <p>Log detections without auto kick/ban while tuning.</p>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="safeToggle" />
+                <span class="slider"></span>
+              </label>
+            </div>
+            <div class="hint">
+              <p><strong>F7</strong> toggle · <strong>Esc</strong> close · Browser panel at <code>/lucidguard/</code></p>
+              <p>Use Tools for announce, warn, shadowban, watch, freeze, ID lookup.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

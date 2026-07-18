@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LucidGuard — Operations</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <canvas id="snow" aria-hidden="true"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <div id="login" class="login">
+    <div class="login-card glass">
+      <div class="brand-row">
+        <div class="mark"></div>
+        <div>
+          <h1>LucidGuard</h1>
+          <p>Staff operations console</p>
+        </div>
+      </div>
+      <label>Staff password</label>
+      <input id="password" type="password" placeholder="lucidguard_web_password" autocomplete="current-password" />
+      <button id="btnLogin" class="btn primary" type="button">Enter console</button>
+      <p class="login-hint">Live mode needs FXServer. Demo works offline with Advanced sample data.</p>
+      <button id="btnDemo" class="btn ghost" type="button">Open Advanced demo</button>
+    </div>
+  </div>
+
+  <div id="app" class="app hidden">
+    <aside class="side glass">
+      <div class="side-brand">
+        <div class="mark"></div>
+        <div>
+          <strong>LucidGuard</strong>
+          <span id="sideTier">ADVANCED</span>
+        </div>
+      </div>
+      <nav class="side-nav">
+        <button class="nav active" data-tab="live" type="button"><i></i>Live feed</button>
+        <button class="nav" data-tab="players" type="button"><i></i>Players</button>
+        <button class="nav" data-tab="tools" type="button"><i></i>Staff tools</button>
+        <button class="nav" data-tab="ops" type="button"><i></i>Ops</button>
+        <button class="nav" data-tab="cases" type="button"><i></i>Cases</button>
+        <button class="nav" data-tab="watch" type="button"><i></i>Watchlist</button>
+        <button class="nav" data-tab="controls" type="button"><i></i>Controls</button>
+      </nav>
+      <div class="side-foot">
+        <div id="sideSafe" class="pill warn">SAFE MODE</div>
+        <div id="sideOnline" class="muted">0 online</div>
+        <button id="btnLogout" class="btn ghost sm" type="button">Lock panel</button>
+      </div>
+    </aside>
+
+    <div class="main">
+      <header class="top glass">
+        <div>
+          <h2 id="pageTitle">Live feed</h2>
+          <p class="sub" id="pageSub">Streaming detections · risk · trust</p>
+        </div>
+        <div class="top-actions">
+          <input id="globalSearch" class="search" type="search" placeholder="Search players / detections…" />
+          <span id="modeBadge" class="pill">DEMO</span>
+          <button id="btnRefresh" class="btn" type="button">Refresh</button>
+        </div>
+      </header>
+
+      <section id="tab-live" class="panel active">
+        <div class="stat-row">
+          <div class="stat-card glass"><span>Online</span><strong id="statOnline">0</strong></div>
+          <div class="stat-card glass"><span>Feed</span><strong id="statFeed">0</strong></div>
+          <div class="stat-card glass"><span>Cases</span><strong id="statCases">0</strong></div>
+          <div class="stat-card glass"><span>Shadowbans</span><strong id="statSb">0</strong></div>
+          <div class="stat-card glass"><span>Watched</span><strong id="statWatch">0</strong></div>
+        </div>
+        <div class="toolbar">
+          <div class="filters">
+            <button class="chip active" data-sev="ALL" type="button">All</button>
+            <button class="chip" data-sev="CRITICAL" type="button">Critical</button>
+            <button class="chip" data-sev="HIGH" type="button">High</button>
+            <button class="chip" data-sev="MEDIUM" type="button">Medium</button>
+            <button class="chip" data-sev="SYSTEM" type="button">System</button>
+          </div>
+          <button id="btnClearFeed" class="btn sm ghost" type="button">Clear feed</button>
+        </div>
+        <div id="feed" class="list glass"></div>
+      </section>
+
+      <section id="tab-players" class="panel">
+        <div class="toolbar">
+          <p class="muted">Click a player for quick actions. Sorted by risk.</p>
+          <label class="check"><input type="checkbox" id="watchOnly" /> Watched only</label>
+        </div>
+        <div id="players" class="list glass"></div>
+      </section>
+
+      <section id="tab-tools" class="panel">
+        <div class="tools-grid">
+          <div class="tool-card glass">
+            <h3>Server announce</h3>
+            <p>Push a staff message to all players.</p>
+            <textarea id="announceText" rows="3" placeholder="Server announcement…"></textarea>
+            <button id="btnAnnounce" class="btn primary" type="button">Send announce</button>
+          </div>
+          <div class="tool-card glass">
+            <h3>Quick punish</h3>
+            <p>Kick / ban by server ID without opening Players.</p>
+            <div class="inline">
+              <input id="quickId" type="number" min="1" placeholder="Player ID" />
+              <input id="quickReason" type="text" placeholder="Reason" />
+            </div>
+            <div class="inline">
+              <button id="btnQuickKick" class="btn" type="button">Kick</button>
+              <button id="btnQuickBan" class="btn danger" type="button">Ban</button>
+              <button id="btnQuickWarn" class="btn" type="button">Warn</button>
+            </div>
+          </div>
+          <div class="tool-card glass">
+            <h3>Shadowban</h3>
+            <p>Queue delayed silent drop (Advanced).</p>
+            <div class="inline">
+              <input id="sbId" type="number" min="1" placeholder="Player ID" />
+              <button id="btnShadow" class="btn primary" type="button">Queue shadowban</button>
+            </div>
+          </div>
+          <div class="tool-card glass">
+            <h3>Watchlist</h3>
+            <p>Mark a player for tighter scrutiny.</p>
+            <div class="inline">
+              <input id="watchId" type="number" min="1" placeholder="Player ID" />
+              <input id="watchReason" type="text" placeholder="Reason" />
+            </div>
+            <button id="btnWatch" class="btn" type="button">Add to watchlist</button>
+          </div>
+          <div class="tool-card glass">
+            <h3>Evidence capture</h3>
+            <p>Request screenshot (needs screenshot-basic + webhook).</p>
+            <div class="inline">
+              <input id="ssId" type="number" min="1" placeholder="Player ID" />
+              <button id="btnShot" class="btn" type="button">Request shot</button>
+            </div>
+          </div>
+          <div class="tool-card glass">
+            <h3>Freeze player</h3>
+            <p>Hold a suspect in place while you review.</p>
+            <div class="inline">
+              <input id="freezeId" type="number" min="1" placeholder="Player ID" />
+              <button id="btnFreeze" class="btn" type="button">Freeze</button>
+              <button id="btnUnfreeze" class="btn ghost" type="button">Unfreeze</button>
+            </div>
+          </div>
+          <div class="tool-card glass">
+            <h3>Lookup identifiers</h3>
+            <p>Pull license / discord / steam for a player ID.</p>
+            <div class="inline">
+              <input id="idLookup" type="number" min="1" placeholder="Player ID" />
+              <button id="btnIds" class="btn" type="button">Lookup</button>
+            </div>
+            <pre id="idResult" class="id-result muted"></pre>
+          </div>
+          <div class="tool-card glass">
+            <h3>Clear risk score</h3>
+            <p>Reset panel risk for a player after review.</p>
+            <div class="inline">
+              <input id="clearRiskId" type="number" min="1" placeholder="Player ID" />
+              <button id="btnClearRisk" class="btn" type="button">Clear risk</button>
+            </div>
+          </div>
+          <div class="tool-card glass">
+            <h3>Force AC recheck</h3>
+            <p>Nudge signature / alive checks (Advanced watch path).</p>
+            <div class="inline">
+              <input id="recheckId" type="number" min="1" placeholder="Player ID" />
+              <button id="btnRecheck" class="btn" type="button">Force recheck</button>
+            </div>
+          </div>
+          <div class="tool-card glass">
+            <h3>Test case Discord</h3>
+            <p>Send a sample case embed to your staff webhook.</p>
+            <button id="btnTestCaseHook" class="btn primary" type="button">Send test case</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-ops" class="panel">
+        <div class="split">
+          <div>
+            <h3>Shadowban queue</h3>
+            <div id="shadowban" class="list glass"></div>
+          </div>
+          <div>
+            <h3>Recent bans</h3>
+            <div id="bans" class="list glass"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-cases" class="panel">
+        <div id="cases" class="list glass"></div>
+      </section>
+
+      <section id="tab-watch" class="panel">
+        <div id="watchlist" class="list glass"></div>
+      </section>
+
+      <section id="tab-controls" class="panel">
+        <div class="control-card glass">
+          <div>
+            <strong>Safe Mode</strong>
+            <p>Log detections without auto kick/ban while tuning.</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="safeToggle" />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="control-card glass column">
+          <strong>Snowfall</strong>
+          <p>Toggle orange ambience particles on this console.</p>
+          <label class="switch">
+            <input type="checkbox" id="snowToggle" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+        <div class="control-card glass column">
+          <strong>Owner theme (events / holidays)</strong>
+          <p>Only the owner PIN can change seasonal snow color. Default is orange (server brand).</p>
+          <div class="inline">
+            <select id="themeSnow">
+              <option value="orange">Orange (default)</option>
+              <option value="gold">Gold</option>
+              <option value="purple">Purple</option>
+              <option value="teal">Teal</option>
+              <option value="rose">Rose</option>
+            </select>
+            <input id="themePin" type="password" placeholder="Owner theme PIN" />
+            <button id="btnTheme" class="btn primary" type="button">Apply theme</button>
+          </div>
+        </div>
+        <div class="control-card glass column">
+          <strong>Live connection</strong>
+          <p>Start FXServer → open <code>http://127.0.0.1:30120/lucidguard/</code><br/>
+             Panel password: <code>lucidguard_web_password</code><br/>
+             Case Discord: <code>lucidguard_case_webhook</code> (staff/admin channel)<br/>
+             Theme PIN: <code>lucidguard_theme_pin</code></p>
+          <p id="toast" class="toast"></p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div id="drawer" class="drawer hidden">
+    <div class="drawer-card glass">
+      <header>
+        <h3 id="drawerTitle">Player</h3>
+        <button id="drawerClose" class="btn ghost sm" type="button">Close</button>
+      </header>
+      <div id="drawerBody" class="drawer-body"></div>
+      <div id="drawerActions" class="drawer-actions"></div>
+    </div>
+  </div>
+
+  <script src="snow.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
